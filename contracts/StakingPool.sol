@@ -6,16 +6,16 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract StakingPool is Pausable, Ownable {
     // Total amount of ETH staked
-    uint256 totalEthStaked;
+    uint256 public totalEthStaked;
 
     // Total amount of pool shares
-    uint256 totalPoolShares;
+    uint256 public totalPoolShares;
 
     // To check if pool is full or not
-    bool poolFull;
+    bool public poolFull;
 
     // To check if rewards are turned on
-    bool rewardsOn;
+    bool public rewardsOn;
 
     // Stake info
     struct StakeInfo {
@@ -24,7 +24,7 @@ contract StakingPool is Pausable, Ownable {
     }
 
     // Each user's stake info
-    mapping(address => StakeInfo) public userStakeInfo;
+    mapping(address => StakeInfo) private userStakeInfo;
 
     // --- Events ---
     event Stake(
@@ -188,5 +188,39 @@ contract StakingPool is Pausable, Ownable {
         require(claim, "Failed to unstake");
 
         emit ClaimRewards(msg.sender, amount, sharesToClaim, rewards);
+    }
+
+    // Calculate exchange rate of a share
+    function exchangeRate() public view returns (uint256) {
+        return ((address(this).balance * (10 ** 18)) / totalPoolShares);
+    }
+
+    // Retrieve user's amount of staked ETH
+    function stakeOf(address staker) public view returns (uint256) {
+        return userStakeInfo[staker].stakedEth;
+    }
+
+    // Retrieve user's amount of pool shares
+    function shareOf(address staker) public view returns (uint256) {
+        return userStakeInfo[staker].poolShares;
+    }
+
+    // Calculate a staker's rewards
+    function rewardOf(address staker) public view returns (uint256) {
+        uint256 userStake = userStakeInfo[staker].stakedEth;
+        uint256 userShares = userStakeInfo[staker].poolShares;
+
+        if (userShares == 0) {
+            return 0;
+        }
+
+        uint256 totalReceiveAmount = (userShares) *
+            ((address(this).balance * (10 ** 18)) / totalPoolShares);
+        uint256 totalStakedAmount = (userShares) *
+            ((userStake * (10 ** 18)) / userShares);
+
+        uint256 rewards = (totalReceiveAmount - totalStakedAmount) / 10 ** 18;
+
+        return rewards;
     }
 }
