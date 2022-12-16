@@ -6,4 +6,4 @@ Users can stake their ETH into this pool to potentially receive rewards (current
 
 ## Functions
 
-Currently, there is only a `stake` and `withdrawStake` function that only works when the contract is not paused and the pool is not full (< 32 ETH). The `stake` function allows the user to stake their ETH within the contract. The `withdrawStake` function allows the user to withdraw their staked ETH before the pool becomes full if they wish.
+The `stake` and `withdrawStake` functions only work when the contract is not paused and the pool is not full (< 32 ETH). The `stake` function allows the user to stake their ETH within the contract. The `withdrawStake` function allows the user to withdraw their staked ETH before the pool becomes full if they wish. The `unstake` function allows the user to unstake their ETH plus any rewards. However, this is currently turned off.
