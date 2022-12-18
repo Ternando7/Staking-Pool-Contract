@@ -55,6 +55,10 @@ contract StakingPool is Pausable, Ownable {
         rewardsOn = true;
     }
 
+    function turnOffPoolFull() external onlyOwner {
+        poolFull = false;
+    }
+
     // Need to complete function with required parameters
     function depositStake() external onlyOwner {
         poolFull = true;
@@ -63,9 +67,15 @@ contract StakingPool is Pausable, Ownable {
     }
 
     // Allow users to stake ETH if pool is not full
-    function stake() external payable whenNotPaused isPoolFull {
+    function stakeIntoPool() external payable whenNotPaused isPoolFull {
         // ETH sent from user needs to be greater than 0
         require(msg.value > 0, "Invalid amount");
+
+        // Check if contract ETH balance is over 32 after user deposit
+        require(
+            address(this).balance + msg.value <= 32.01 ether,
+            "Pool max capacitiy"
+        );
 
         // Update state
         stakedAmount[msg.sender] += msg.value;
@@ -75,7 +85,9 @@ contract StakingPool is Pausable, Ownable {
     }
 
     // Allow users to withdraw their stake if pool is not full
-    function withdrawStake(uint256 amount) external whenNotPaused isPoolFull {
+    function withdrawStakeFromPool(
+        uint256 amount
+    ) external whenNotPaused isPoolFull {
         // Check if user has enough to withdraw
         require(stakedAmount[msg.sender] >= amount, "Insufficient amount");
 
@@ -91,7 +103,7 @@ contract StakingPool is Pausable, Ownable {
     }
 
     // Allow users to unstake a certain amount of ETH + rewards (currently off)
-    function unstake(uint256 amount) external whenNotPaused {
+    function unstakeFromPool(uint256 amount) external whenNotPaused {
         require(rewardsOn, "Currently cannot claim rewards");
 
         uint256 userStakedAmount = stakedAmount[msg.sender];
