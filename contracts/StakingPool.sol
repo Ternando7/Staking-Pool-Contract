@@ -8,6 +8,9 @@ contract StakingPool is Pausable, Ownable {
     // Total amount of ETH staked
     uint256 public totalEthStaked;
 
+    // Total amount of rewards received by the contract
+    uint256 public totalRewardsReceived;
+
     // To check if pool is full or not
     bool public poolFull;
 
@@ -29,7 +32,9 @@ contract StakingPool is Pausable, Ownable {
     );
 
     // Allow contract to receive ETH
-    receive() external payable {}
+    receive() external payable {
+        totalRewardsReceived += msg.value;
+    }
 
     constructor() {
         poolFull = false;
@@ -71,8 +76,11 @@ contract StakingPool is Pausable, Ownable {
         // ETH sent from user needs to be greater than 0
         require(msg.value > 0, "Invalid amount");
 
-        // Check if contract ETH balance is over 32 ETH
-        require(address(this).balance <= 32.01 ether, "Pool max capacitiy");
+        // Check if staked ETH balance is over 32 ETH after user deposits stake
+        require(
+            totalEthStaked + msg.value <= 32.01 ether,
+            "Pool max capacitiy"
+        );
 
         // Update state
         stakedAmount[msg.sender] += msg.value;
@@ -111,15 +119,13 @@ contract StakingPool is Pausable, Ownable {
         // Calculate rewards
         uint256 totalStakePortion = (userStakedAmount * 10 ** 18) /
             totalEthStaked;
-        uint256 totalContractRewards = address(this).balance - totalEthStaked;
-        uint256 totalUserRewards = (totalStakePortion * totalContractRewards) /
+        uint256 totalUserRewards = (totalStakePortion * totalRewardsReceived) /
             10 ** 18;
         uint256 rewards = (totalUserRewards *
             ((amount * 10 ** 18) / userStakedAmount)) / 10 ** 18;
 
         // Update state
         stakedAmount[msg.sender] -= amount;
-        totalEthStaked -= amount;
 
         // Send user amount staked + rewards
         (bool claim, ) = payable(msg.sender).call{value: amount + rewards}("");
@@ -144,8 +150,7 @@ contract StakingPool is Pausable, Ownable {
         // Calculate rewards
         uint256 totalStakePortion = (userStakedAmount * 10 ** 18) /
             totalEthStaked;
-        uint256 totalContractRewards = address(this).balance - totalEthStaked;
-        uint256 totalUserRewards = (totalStakePortion * totalContractRewards) /
+        uint256 totalUserRewards = (totalStakePortion * totalRewardsReceived) /
             10 ** 18;
 
         return totalUserRewards;
