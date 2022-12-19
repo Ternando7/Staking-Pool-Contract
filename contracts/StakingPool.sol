@@ -71,11 +71,8 @@ contract StakingPool is Pausable, Ownable {
         // ETH sent from user needs to be greater than 0
         require(msg.value > 0, "Invalid amount");
 
-        // Check if contract ETH balance is over 32 after user deposit
-        require(
-            address(this).balance + msg.value <= 32.01 ether,
-            "Pool max capacitiy"
-        );
+        // Check if contract ETH balance is over 32 ETH
+        require(address(this).balance <= 32.01 ether, "Pool max capacitiy");
 
         // Update state
         stakedAmount[msg.sender] += msg.value;
