@@ -4,6 +4,40 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+
+interface IDepositContract {
+    /// @notice A processed deposit event.
+    // https://github.com/ethereum/consensus-specs/blob/dev/solidity_deposit_contract/deposit_contract.sol
+    event DepositEvent(
+        bytes pubkey,
+        bytes withdrawal_credentials,
+        bytes amount,
+        bytes signature,
+        bytes index
+    );
+
+    /// @notice Submit a Phase 0 DepositData object.
+    /// @param pubkey A BLS12-381 public key.
+    /// @param withdrawal_credentials Commitment to a public key for withdrawals.
+    /// @param signature A BLS12-381 signature.
+    /// @param deposit_data_root The SHA-256 hash of the SSZ-encoded DepositData object.
+    /// Used as a protection against malformed input.
+    function deposit(
+        bytes calldata pubkey,
+        bytes calldata withdrawal_credentials,
+        bytes calldata signature,
+        bytes32 deposit_data_root
+    ) external payable;
+
+    /// @notice Query the current deposit root hash.
+    /// @return The deposit root hash.
+    function get_deposit_root() external view returns (bytes32);
+
+    /// @notice Query the current deposit count.
+    /// @return The deposit count encoded as a little endian 64-bit number.
+    function get_deposit_count() external view returns (bytes memory);
+}
+
 contract StakingPool is Pausable, Ownable {
     // Total amount of ETH staked
     uint256 public totalEthStaked;
@@ -16,6 +50,12 @@ contract StakingPool is Pausable, Ownable {
 
     // To check if rewards are turned on
     bool public rewardsOn;
+
+    // Address of mainnet staking contract
+    address public mainnetStakingAddress;
+
+    // Address of goerli staking contract
+    address public goerliStakingAddress;
 
     // User's staked amount
     mapping(address => uint256) private stakedAmount;
@@ -39,6 +79,8 @@ contract StakingPool is Pausable, Ownable {
     constructor() {
         poolFull = false;
         rewardsOn = false;
+        mainnetStakingAddress = 0x00000000219ab540356cBB839Cbe05303d7705Fa;
+        goerliStakingAddress = 0xff50ed3d0ec03aC01D4C79aAd74928BFF48a7b2b;
     }
 
     // Check if pool is full
@@ -64,11 +106,28 @@ contract StakingPool is Pausable, Ownable {
         poolFull = false;
     }
 
+
     // Need to complete function with required parameters
-    function depositStake() external onlyOwner {
+    function depositStake(
+        bytes calldata pubkey,
+        bytes calldata withdrawal_credentials,
+        bytes calldata signature,
+        bytes32 deposit_data_root
+    ) external onlyOwner {
         poolFull = true;
 
         // Deposit 32 ETH into deposit contract
+        require(address(this).balance >= 32 ether, "depositStake: insufficient pool balance");
+        //require(msg.value == 32 ether, "DepositContract: invalid deposit amount");
+        
+        require(keccak256(abi.encodePacked(withdrawal_credentials)) == keccak256(abi.encodePacked(address(this)))), "depositStake: withdrawal_credentials address must match this contract address");
+
+        IDepositContract(goerliStakingAddress).deposit{value: 32 ether}(
+            pubkey,
+            abi.encodePacked(withdrawal_credentials),
+            signature,
+            deposit_data_root
+        );
     }
 
     // Allow users to stake ETH if pool is not full
