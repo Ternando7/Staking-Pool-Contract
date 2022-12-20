@@ -118,9 +118,9 @@ contract StakingPool is Pausable, Ownable {
 
         // Deposit 32 ETH into deposit contract
         require(address(this).balance >= 32 ether, "depositStake: insufficient pool balance");
-        //require(msg.value == 32 ether, "DepositContract: invalid deposit amount");
-        
-        require(keccak256(abi.encodePacked(withdrawal_credentials)) == keccak256(abi.encodePacked(address(this)))), "depositStake: withdrawal_credentials address must match this contract address");
+        // we need to figure out how to hash the contract address properly to match the withdrawal credentials
+        // should be able to reverse engineer from staking deposit cli
+        //require(keccak256(abi.encodePacked(withdrawal_credentials)) == keccak256(abi.encodePacked(address(this))), "depositStake: withdrawal_credentials address must match this contract address");
 
         IDepositContract(goerliStakingAddress).deposit{value: 32 ether}(
             pubkey,
